@@ -45,9 +45,8 @@ export default function Explore() {
           className="flex items-center gap-3 px-6 py-4 rounded-2xl text-white"
           style={{ backgroundColor: Theme.primary }}
         >
-          <FaFire className="text-[#F59E0B] text-2xl shrink-0" />
           <p className="text-sm sm:text-base font-medium">
-            🔥 Trending today —{" "}
+            Trending today{" "}
             <span className="font-bold">"Dear 22-Year-Old Me"</span> is the most
             liked post with 427 hearts!
           </p>

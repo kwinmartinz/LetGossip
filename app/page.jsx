@@ -71,7 +71,7 @@ export default function Home() {
               >
                 <FaPenNib />
               </div>
-              <h3 className="text-xl font-bold">Write Freely</h3>
+              <h3 className="text-xl font-bold text-gray-800">Write Freely</h3>
               <p className="text-gray-500 text-sm text-center">
                 Express your thoughts, opinions, and stories without limits.
                 Your voice matters here.
@@ -85,7 +85,9 @@ export default function Home() {
               >
                 <FaFire />
               </div>
-              <h3 className="text-xl font-bold">Trending Stories</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                Trending Stories
+              </h3>
               <p className="text-gray-500 text-sm text-center">
                 Discover the hottest posts from writers around the world. Stay
                 in the loop always.
@@ -99,7 +101,9 @@ export default function Home() {
               >
                 <FaUsers />
               </div>
-              <h3 className="text-xl font-bold">Connect & Grow</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                Connect & Grow
+              </h3>
               <p className="text-gray-500 text-sm text-center">
                 Follow writers you love, get followers, and build a community
                 around your content.
@@ -140,7 +144,9 @@ export default function Home() {
               >
                 1
               </div>
-              <h3 className="text-xl font-bold">Create an Account</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                Create an Account
+              </h3>
               <p className="text-gray-500 text-sm text-center">
                 Sign up for free in seconds. No complicated forms, just your
                 name, email, and password.
@@ -161,7 +167,9 @@ export default function Home() {
               >
                 2
               </div>
-              <h3 className="text-xl font-bold">Write Your Post</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                Write Your Post
+              </h3>
               <p className="text-gray-500 text-sm text-center">
                 Use our clean editor to write anything; opinions, stories, tips,
                 reviews. Your words, your way.
@@ -182,7 +190,9 @@ export default function Home() {
               >
                 3
               </div>
-              <h3 className="text-xl font-bold">Connect with Readers</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                Connect with Readers
+              </h3>
               <p className="text-gray-500 text-sm text-center">
                 Publish and watch your story reach readers worldwide. Get likes,
                 comments, and followers.

@@ -4,8 +4,8 @@ import { Theme } from "../components/Theme";
 import { LuUser, LuMail, LuLock, LuCamera } from "react-icons/lu";
 
 export default function Settings() {
-  const [name, setName] = useState("Fatima Aliyu");
-  const [email, setEmail] = useState("fatima@letgossip.com");
+  const [name, setName] = useState("Queen-Martins");
+  const [email, setEmail] = useState("queenmartins@letgossip.com");
   const [bio, setBio] = useState(
     "Writer, thinker, and chronic overthinker. I write about life, growth, and everything in between.",
   );

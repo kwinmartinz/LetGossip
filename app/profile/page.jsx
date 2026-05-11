@@ -5,8 +5,8 @@ import { LuSettings } from "react-icons/lu";
 import { posts } from "../data/posts";
 
 const user = {
-  name: "Fatima Aliyu",
-  avatar: "FA",
+  name: "Queen-Martins",
+  avatar: "QM",
   bio: "Writer, thinker, and chronic overthinker. I write about life, growth, and everything in between.",
   joined: "January 2026",
   totalPosts: 6,

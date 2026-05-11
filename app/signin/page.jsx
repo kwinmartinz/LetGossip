@@ -1,10 +1,18 @@
+import { auth, signIn } from "@/auth";
 import { Theme } from "../components/Theme";
 import Image from "next/image";
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
 import { LuMail, LuLock } from "react-icons/lu";
+import { redirect } from "next/navigation";
 
-export default function SignIn() {
+export default async function SignIn() {
+  const session = await auth();
+
+  if (session) {
+    redirect("/");
+  }
+
   return (
     <main className="min-h-dvh bg-[url('/bg5.avif')] bg-center bg-cover bg-no-repeat">
       <section className="min-h-dvh bg-black/50 flex items-center justify-center px-4 py-10">
@@ -30,10 +38,20 @@ export default function SignIn() {
           </div>
 
           {/* Google Sign In */}
-          <button className="flex items-center justify-center gap-3 w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200">
-            <FcGoogle className="text-2xl" />
-            Continue with Google
-          </button>
+          <form
+            action={async () => {
+              "use server";
+              await signIn("google");
+            }}
+          >
+            <button
+              type="submit"
+              className="flex items-center justify-center gap-3 w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200"
+            >
+              <FcGoogle className="text-2xl" />
+              Continue with Google
+            </button>
+          </form>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
