@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LuUserRound } from "react-icons/lu";
 import { RiMenu3Fill } from "react-icons/ri";
@@ -8,6 +8,9 @@ import { IoMdClose } from "react-icons/io";
 import { useSession, signOut } from "next-auth/react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Avatar from "@mui/material/Avatar";
+import { onAuthStateChanged } from "firebase/auth";
+import { firebaseAuth } from "@/config/firebase";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -71,54 +74,59 @@ export default function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3">
-          {session ? (
-            <div>
-              <button
-                id="basic-button"
-                aria-controls={open ? "basic-menu" : undefined}
-                aria-haspopup="true"
-                aria-expanded={open ? "true" : undefined}
-                onClick={handleClick}
-                className="flex items-center"
+          {/* Desktop — session check */}
+          <span className="max-md:hidden">
+            {session ? (
+              <div>
+                <button
+                  id="basic-button"
+                  aria-controls={open ? "basic-menu" : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={open ? "true" : undefined}
+                  onClick={handleClick}
+                  className="flex items-center"
+                >
+                  <Avatar
+                    alt={session?.user?.name}
+                    src={session?.user?.image}
+                  />
+                </button>
+                <Menu
+                  id="basic-menu"
+                  anchorEl={anchorEl}
+                  open={open}
+                  onClose={handleClose}
+                  slotProps={{
+                    list: {
+                      "aria-labelledby": "basic-button",
+                    },
+                  }}
+                >
+                  <MenuItem onClick={handleClose}>
+                    <Link href={"/profile"}>My Profile</Link>
+                  </MenuItem>
+                  <MenuItem onClick={handleClose}>
+                    <Link href={"/write"}>Write Post</Link>
+                  </MenuItem>
+                  <MenuItem onClick={handleClose}>
+                    <Link href={"/drafts"}>My Drafts</Link>
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">
+                      Logout
+                    </button>
+                  </MenuItem>
+                </Menu>
+              </div>
+            ) : (
+              <Link
+                className="flex items-center gap-2 bg-white text-[#7C3AED] text-sm font-medium px-4 py-2 rounded-full hover:bg-[#F59E0B] hover:text-white transition-all duration-200"
+                href={"/signin"}
               >
-                <img
-                  src={session?.user?.image}
-                  alt={session?.user?.name?.slice(0, 2)}
-                  className="w-10 h-10 rounded-full border-2 border-[#F59E0B] object-cover"
-                />
-              </button>
-              <Menu
-                id="basic-menu"
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                slotProps={{
-                  list: {
-                    "aria-labelledby": "basic-button",
-                  },
-                }}
-              >
-                <MenuItem onClick={handleClose}>
-                  <Link href={"/profile"}>My Profile</Link>
-                </MenuItem>
-                <MenuItem onClick={handleClose}>
-                  <Link href={"/write"}>Write Post</Link>
-                </MenuItem>
-                <MenuItem onClick={handleLogout}>
-                  <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">
-                    Logout
-                  </button>
-                </MenuItem>
-              </Menu>
-            </div>
-          ) : (
-            <Link
-              className="hidden md:flex items-center gap-2 bg-white text-[#7C3AED] text-sm font-medium px-4 py-2 rounded-full hover:bg-[#F59E0B] hover:text-white transition-all duration-200"
-              href={"/signin"}
-            >
-              Sign In <LuUserRound className="text-lg" />
-            </Link>
-          )}
+                Sign In <LuUserRound className="text-lg" />
+              </Link>
+            )}
+          </span>
 
           {/* Hamburger — mobile only */}
           <button
@@ -148,7 +156,44 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {!session && (
+          {/* Mobile — session check */}
+          {session ? (
+            <div>
+              <button
+                id="mobile-button"
+                aria-controls={open ? "mobile-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? "true" : undefined}
+                onClick={handleClick}
+                className="flex items-center"
+              >
+                <Avatar alt={session?.user?.name} src={session?.user?.image} />
+              </button>
+              <Menu
+                id="mobile-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                slotProps={{
+                  list: {
+                    "aria-labelledby": "mobile-button",
+                  },
+                }}
+              >
+                <MenuItem onClick={handleClose}>
+                  <Link href={"/profile"}>My Profile</Link>
+                </MenuItem>
+                <MenuItem onClick={handleClose}>
+                  <Link href={"/write"}>Write Post</Link>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">
+                    Logout
+                  </button>
+                </MenuItem>
+              </Menu>
+            </div>
+          ) : (
             <Link
               href={"/signin"}
               onClick={() => setNavOpen(false)}
@@ -156,15 +201,6 @@ export default function Navbar() {
             >
               Sign In <LuUserRound className="text-2xl" />
             </Link>
-          )}
-
-          {session && (
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 text-white px-6 py-2 rounded-full text-lg"
-            >
-              Logout
-            </button>
           )}
         </div>
       )}

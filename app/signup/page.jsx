@@ -6,8 +6,38 @@ import { FcGoogle } from "react-icons/fc";
 import { LuMail, LuLock, LuUser } from "react-icons/lu";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { useState } from "react";
+import { FiLoader } from "react-icons/fi";
+import { FaRegThumbsUp } from "react-icons/fa";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Modal from "@mui/material/Modal";
+import { firebaseAuth } from "@/config/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { signIn } from "next-auth/react";
+
+const style = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 4,
+  borderRadius: 4,
+};
 
 export default function SignUp() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const handleClose = () => {
+    setOpen(false);
+    window.location.href = "/signin";
+  };
+
   const formik = useFormik({
     initialValues: {
       name: "",
@@ -33,9 +63,40 @@ export default function SignUp() {
         .oneOf([true], "You must accept the terms and conditions")
         .required("You must accept the terms and conditions"),
     }),
-    onSubmit: (values) => {
-      console.log("Form submitted:", values);
-      // Connect to your database here later
+    onSubmit: async (values, { resetForm }) => {
+      setLoading(true);
+      setError("");
+
+      const auth = firebaseAuth;
+      createUserWithEmailAndPassword(auth, values.email, values.password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          // Update display name
+          return updateProfile(user, {
+            displayName: values.name,
+          });
+        })
+        .then(() => {
+          resetForm();
+          setOpen(true);
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          if (errorCode === "auth/email-already-in-use") {
+            setError(
+              "An account with this email already exists. Please sign in instead.",
+            );
+          } else if (errorCode === "auth/invalid-email") {
+            setError("Please enter a valid email address.");
+          } else if (errorCode === "auth/weak-password") {
+            setError("Password is too weak. Please use at least 6 characters.");
+          } else {
+            setError("Something went wrong. Please try again.");
+          }
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     },
   });
 
@@ -63,8 +124,18 @@ export default function SignUp() {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-500 text-sm px-4 py-3 rounded-2xl text-center">
+              {error}
+            </div>
+          )}
+
           {/* Google Sign Up */}
-          <button className="flex items-center justify-center gap-3 w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200">
+          <button
+            onClick={() => signIn("google", { callbackUrl: "/" })}
+            className="flex items-center justify-center gap-3 w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all duration-200"
+          >
             <FcGoogle className="text-2xl" />
             Continue with Google
           </button>
@@ -200,10 +271,15 @@ export default function SignUp() {
             {/* Sign Up Button */}
             <button
               type="submit"
-              className="w-full py-3 rounded-full text-white font-medium text-sm hover:opacity-90 transition-all duration-200"
+              disabled={loading}
+              className="w-full py-3 rounded-full text-white font-medium text-sm hover:opacity-90 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
               style={{ backgroundColor: Theme.primary }}
             >
-              Create Account
+              {loading ? (
+                <FiLoader className="text-lg animate-spin" />
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
@@ -220,6 +296,45 @@ export default function SignUp() {
           </p>
         </div>
       </section>
+
+      {/* Success Modal */}
+      <Modal open={open} onClose={handleClose}>
+        <Box sx={style}>
+          <Typography
+            variant="h6"
+            component="h2"
+            className="flex items-center justify-center"
+          >
+            <FaRegThumbsUp
+              className="text-6xl"
+              style={{ color: Theme.primary }}
+            />
+          </Typography>
+          <Typography
+            sx={{
+              mt: 2,
+              textAlign: "center",
+              fontWeight: "bold",
+              color: "#1f2937",
+              fontSize: "1rem",
+            }}
+          >
+            ACCOUNT CREATED SUCCESSFULLY!
+          </Typography>
+          <p className="text-center text-gray-400 text-xs mt-2">
+            You can now sign in with your email and password.
+          </p>
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={handleClose}
+              className="text-sm px-6 py-2 rounded-full text-white font-medium hover:opacity-90 transition-all duration-200"
+              style={{ backgroundColor: Theme.primary }}
+            >
+              Go to Sign In
+            </button>
+          </div>
+        </Box>
+      </Modal>
     </main>
   );
 }

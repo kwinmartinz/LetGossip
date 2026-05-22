@@ -31,25 +31,25 @@ export default function Footer() {
       {/* Links */}
       <div className="flex items-center gap-8 text-sm max-md:flex-col">
         <Link
-          href={"#"}
+          href={"/chat"}
           className="hover:text-yellow-300 transition-all duration-200"
         >
           Chat with us
         </Link>
         <Link
-          href={"#"}
+          href={"/privacy"}
           className="hover:text-yellow-300 transition-all duration-200"
         >
           Privacy Policy
         </Link>
         <Link
-          href={"#"}
+          href={"/terms"}
           className="hover:text-yellow-300 transition-all duration-200"
         >
           Terms of Service
         </Link>
         <Link
-          href={"#"}
+          href={"/contact"}
           className="hover:text-yellow-300 transition-all duration-200"
         >
           Contact Support
