@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LuUserRound } from "react-icons/lu";
 import { RiMenu3Fill } from "react-icons/ri";
@@ -9,12 +9,19 @@ import { useSession, signOut } from "next-auth/react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Avatar from "@mui/material/Avatar";
+import { onAuthStateChanged } from "firebase/auth";
+import { firebaseAuth } from "@/config/firebase";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const [navOpen, setNavOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+
+  // Separated anchor states to keep desktop and mobile contexts completely distinct
+  const [desktopAnchorEl, setDesktopAnchorEl] = useState(null);
+  const [mobileAnchorEl, setMobileAnchorEl] = useState(null);
+
+  const desktopOpen = Boolean(desktopAnchorEl);
+  const mobileOpen = Boolean(mobileAnchorEl);
 
   const navLinks = [
     { label: "Home", url: "/" },
@@ -23,16 +30,25 @@ export default function Navbar() {
     { label: "Write", url: "/write" },
   ];
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleDesktopClick = (event) => {
+    setDesktopAnchorEl(event.currentTarget);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
+  const handleDesktopClose = () => {
+    setDesktopAnchorEl(null);
+  };
+
+  const handleMobileClick = (event) => {
+    setMobileAnchorEl(event.currentTarget);
+  };
+
+  const handleMobileClose = () => {
+    setMobileAnchorEl(null);
   };
 
   const handleLogout = async () => {
-    handleClose();
+    handleDesktopClose();
+    handleMobileClose();
     await signOut({ callbackUrl: "/" });
   };
 
@@ -40,7 +56,7 @@ export default function Navbar() {
     <nav className="bg-[#7C3AED] sticky top-0 z-50 shadow-md">
       {/* Main Row */}
       <div className="flex items-center justify-between px-6 py-3">
-        {/* Logo */}
+        {/* Logo — Left on all screens */}
         <Link href={"/"} className="flex items-center gap-2">
           <Image
             src={"/logo.png.png"}
@@ -72,16 +88,16 @@ export default function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3">
-          {/* Desktop session check — Avatar + dropdown */}
+          {/* Desktop — session check */}
           <span className="max-md:hidden">
             {session ? (
               <div>
                 <button
                   id="basic-button"
-                  aria-controls={open ? "basic-menu" : undefined}
+                  aria-controls={desktopOpen ? "basic-menu" : undefined}
                   aria-haspopup="true"
-                  aria-expanded={open ? "true" : undefined}
-                  onClick={handleClick}
+                  aria-expanded={desktopOpen ? "true" : undefined}
+                  onClick={handleDesktopClick}
                   className="flex items-center"
                 >
                   <Avatar
@@ -91,18 +107,22 @@ export default function Navbar() {
                 </button>
                 <Menu
                   id="basic-menu"
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                  slotProps={{ list: { "aria-labelledby": "basic-button" } }}
+                  anchorEl={desktopAnchorEl}
+                  open={desktopOpen}
+                  onClose={handleDesktopClose}
+                  slotProps={{
+                    list: {
+                      "aria-labelledby": "basic-button",
+                    },
+                  }}
                 >
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/profile"}>My Profile</Link>
                   </MenuItem>
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/write"}>Write Post</Link>
                   </MenuItem>
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/drafts"}>My Drafts</Link>
                   </MenuItem>
                   <MenuItem onClick={handleLogout}>
@@ -136,60 +156,66 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu — clean links only, no Avatar, no dropdown */}
+      {/* Mobile Menu — drops below navbar */}
       {navOpen && (
-        <div className="md:hidden bg-white flex flex-col items-center gap-6 py-8 border-t border-gray-200">
-          {/* Nav Links */}
+        <div className="md:hidden bg-white flex flex-col items-center gap-8 py-8 border-t border-gray-200">
           {navLinks.map((item, i) => (
             <Link
               key={i}
               href={item.url}
               onClick={() => setNavOpen(false)}
-              className="text-[#7C3AED] text-lg px-6 py-2 rounded-full border border-[#7C3AED]/30 hover:bg-[#7C3AED] hover:text-white transition-all duration-200 w-48 text-center"
+              className="text-[#7C3AED] text-lg px-6 py-2 rounded-full border border-[#7C3AED]/30 hover:bg-[#7C3AED] hover:text-white transition-all duration-200"
             >
               {item.label}
             </Link>
           ))}
 
-          {/* Session Links */}
+          {/* Mobile — session check */}
           {session ? (
-            <>
-              <Link
-                href="/profile"
-                onClick={() => setNavOpen(false)}
-                className="text-[#7C3AED] text-lg px-6 py-2 rounded-full border border-[#7C3AED]/30 hover:bg-[#7C3AED] hover:text-white transition-all duration-200 w-48 text-center"
-              >
-                My Profile
-              </Link>
-              <Link
-                href="/write"
-                onClick={() => setNavOpen(false)}
-                className="text-[#7C3AED] text-lg px-6 py-2 rounded-full border border-[#7C3AED]/30 hover:bg-[#7C3AED] hover:text-white transition-all duration-200 w-48 text-center"
-              >
-                Write Post
-              </Link>
-              <Link
-                href="/drafts"
-                onClick={() => setNavOpen(false)}
-                className="text-[#7C3AED] text-lg px-6 py-2 rounded-full border border-[#7C3AED]/30 hover:bg-[#7C3AED] hover:text-white transition-all duration-200 w-48 text-center"
-              >
-                My Drafts
-              </Link>
+            <div>
               <button
-                onClick={() => {
-                  setNavOpen(false);
-                  signOut({ callbackUrl: "/" });
-                }}
-                className="bg-red-500 text-white text-lg px-6 py-2 rounded-full hover:opacity-90 transition-all duration-200 w-48"
+                id="mobile-button"
+                aria-controls={mobileOpen ? "mobile-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={mobileOpen ? "true" : undefined}
+                onClick={handleMobileClick}
+                className="flex items-center"
               >
-                Logout
+                <Avatar alt={session?.user?.name} src={session?.user?.image} />
               </button>
-            </>
+              <Menu
+                id="mobile-menu"
+                anchorEl={mobileAnchorEl}
+                open={mobileOpen}
+                onClose={handleMobileClose}
+                slotProps={{
+                  list: {
+                    "aria-labelledby": "mobile-button",
+                  },
+                }}
+              >
+                <MenuItem onClick={handleMobileClose}>
+                  <Link href={"/profile"}>My Profile</Link>
+                </MenuItem>
+                <MenuItem onClick={handleMobileClose}>
+                  <Link href={"/write"}>Write Post</Link>
+                </MenuItem>
+                {/* Fixed: Added missing drafts screen link mapping explicitly for mobile view layouts */}
+                <MenuItem onClick={handleMobileClose}>
+                  <Link href={"/drafts"}>My Drafts</Link>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">
+                    Logout
+                  </button>
+                </MenuItem>
+              </Menu>
+            </div>
           ) : (
             <Link
               href={"/signin"}
               onClick={() => setNavOpen(false)}
-              className="flex items-center gap-2 bg-[#7C3AED] text-white text-lg px-6 py-2 rounded-full hover:bg-[#F59E0B] transition-all duration-200"
+              className="flex items-center gap-2 bg-[#7C3AED] text-white text-lg px-6 py-2 rounded-full hover:bg-[#F59E0B] hover:text-white transition-all duration-200"
             >
               Sign In <LuUserRound className="text-2xl" />
             </Link>
