@@ -2,13 +2,12 @@
 import { useEffect, useState } from "react";
 import { Theme } from "../components/Theme";
 import Link from "next/link";
-import { FaHeart, FaRegComment } from "react-icons/fa";
+import { FaHeart, FaRegHeart, FaRegComment } from "react-icons/fa";
 import { LuSearch } from "react-icons/lu";
 import { FiTrash2 } from "react-icons/fi";
 import { FiLoader } from "react-icons/fi";
 import {
   collection,
-  getDocs,
   doc,
   deleteDoc,
   updateDoc,
@@ -18,6 +17,8 @@ import {
   limit,
   startAfter,
   where,
+  onSnapshot,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/config/firebase";
 
@@ -46,29 +47,40 @@ const ExplorePosts = ({ session }) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleFetch = async () => {
+  // Determine user login status safely
+  const isUserLoggedIn = !!session;
+
+  useEffect(() => {
     setLoading(true);
-    const items = [];
-    try {
-      const q = query(
-        collection(db, "posts"),
-        where("status", "==", "published"),
-        orderBy("createdAt", "desc"),
-        limit(POSTS_PER_PAGE),
-      );
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach((doc) => {
-        items.push({ postId: doc.id, ...doc.data() });
-      });
-      setPosts(items);
-      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
-      setHasMore(querySnapshot.docs.length === POSTS_PER_PAGE);
-    } catch (error) {
-      console.error("An error occurred", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc"),
+      limit(POSTS_PER_PAGE),
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = [];
+        snapshot.forEach((doc) => {
+          items.push({ postId: doc.id, ...doc.data() });
+        });
+
+        setPosts(items);
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === POSTS_PER_PAGE);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error setting up real-time stream:", error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const handleLoadMore = async () => {
     if (!lastDoc) return;
@@ -86,19 +98,23 @@ const ExplorePosts = ({ session }) => {
       querySnapshot.forEach((doc) => {
         items.push({ postId: doc.id, ...doc.data() });
       });
-      setPosts((prev) => [...prev, ...items]);
+
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.postId));
+        const uniqueNewItems = items.filter(
+          (item) => !existingIds.has(item.postId),
+        );
+        return [...prev, ...uniqueNewItems];
+      });
+
       setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
       setHasMore(querySnapshot.docs.length === POSTS_PER_PAGE);
     } catch (error) {
-      console.error("An error occurred", error);
+      console.error("An error occurred loading more posts", error);
     } finally {
       setLoadingMore(false);
     }
   };
-
-  useEffect(() => {
-    handleFetch();
-  }, []);
 
   const handleDelete = async (id) => {
     try {
@@ -107,7 +123,7 @@ const ExplorePosts = ({ session }) => {
         setPosts((prev) => prev.filter((post) => post.postId !== id));
       }
     } catch (error) {
-      console.error("An error occurred", error);
+      console.error("An error occurred deleting post", error);
       alert("Oops...Something went wrong!");
     }
   };
@@ -119,13 +135,6 @@ const ExplorePosts = ({ session }) => {
         likes: increment(1),
       });
       setLikedPosts((prev) => [...prev, postId]);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.postId === postId
-            ? { ...post, likes: (post.likes || 0) + 1 }
-            : post,
-        ),
-      );
     } catch (error) {
       console.error("Error liking post", error);
     }
@@ -190,7 +199,7 @@ const ExplorePosts = ({ session }) => {
           ))}
         </div>
 
-        {/* Loader */}
+        {/* Loader & Empty states */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <FiLoader
@@ -266,9 +275,9 @@ const ExplorePosts = ({ session }) => {
                   {post.content?.slice(0, 120)}...
                 </p>
 
-                {/* Read More */}
+                {/* Conditional Read More Redirect Link based on Session */}
                 <Link
-                  href={`/post/${post.postId}`}
+                  href={isUserLoggedIn ? `/post/${post.postId}` : "/signup"}
                   className="text-sm font-bold hover:opacity-70 transition-opacity"
                   style={{ color: Theme.primary }}
                 >
@@ -296,22 +305,31 @@ const ExplorePosts = ({ session }) => {
                       {post.author}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-gray-400 text-xs">
+                  <div className="flex items-center gap-3 text-xs">
+                    {/* Like button */}
                     <button
                       onClick={() => handleLike(post.postId)}
                       className={`flex items-center gap-1 transition-colors ${
                         likedPosts.includes(post.postId)
-                          ? "text-pink-500"
-                          : "text-gray-400 hover:text-pink-400"
+                          ? "text-red-500 font-semibold"
+                          : "text-gray-400 hover:text-red-400"
                       }`}
                     >
-                      <FaHeart /> {post.likes || 0}
+                      {likedPosts.includes(post.postId) ? (
+                        <FaHeart />
+                      ) : (
+                        <FaRegHeart className="text-gray-400" />
+                      )}
+                      <span>{post.likes || 0}</span>
                     </button>
+
+                    {/* Conditional Comment Icon Redirect Link based on Session */}
                     <Link
-                      href={`/post/${post.postId}`}
-                      className="flex items-center gap-1 hover:text-[#7C3AED] transition-colors"
+                      href={isUserLoggedIn ? `/post/${post.postId}` : "/signup"}
+                      className="flex items-center gap-1 text-gray-400 hover:text-[#7C3AED] transition-colors"
                     >
-                      <FaRegComment /> {post.comments || 0}
+                      <FaRegComment />
+                      <span>{post.commentsCount || 0}</span>
                     </Link>
                   </div>
                 </div>

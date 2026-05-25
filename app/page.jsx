@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <main>
       {/* Hero Section */}
-      <section className="min-h-dvh bg-[url('/bg3.webp')] bg-center bg-cover bg-no-repeat">
+      <section className="min-h-dvh bg-[url('/bg10.jpg')] bg-center bg-cover bg-no-repeat">
         <div className="min-h-dvh bg-black/50 flex flex-col items-center justify-center px-4">
           <div className="text-white w-full max-w-4xl mx-auto flex flex-col items-center justify-center gap-8 text-center">
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-tight">

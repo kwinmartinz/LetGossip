@@ -15,8 +15,13 @@ import { firebaseAuth } from "@/config/firebase";
 export default function Navbar() {
   const { data: session } = useSession();
   const [navOpen, setNavOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+
+  // Separated anchor states to keep desktop and mobile contexts completely distinct
+  const [desktopAnchorEl, setDesktopAnchorEl] = useState(null);
+  const [mobileAnchorEl, setMobileAnchorEl] = useState(null);
+
+  const desktopOpen = Boolean(desktopAnchorEl);
+  const mobileOpen = Boolean(mobileAnchorEl);
 
   const navLinks = [
     { label: "Home", url: "/" },
@@ -25,16 +30,25 @@ export default function Navbar() {
     { label: "Write", url: "/write" },
   ];
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleDesktopClick = (event) => {
+    setDesktopAnchorEl(event.currentTarget);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
+  const handleDesktopClose = () => {
+    setDesktopAnchorEl(null);
+  };
+
+  const handleMobileClick = (event) => {
+    setMobileAnchorEl(event.currentTarget);
+  };
+
+  const handleMobileClose = () => {
+    setMobileAnchorEl(null);
   };
 
   const handleLogout = async () => {
-    handleClose();
+    handleDesktopClose();
+    handleMobileClose();
     await signOut({ callbackUrl: "/" });
   };
 
@@ -80,10 +94,10 @@ export default function Navbar() {
               <div>
                 <button
                   id="basic-button"
-                  aria-controls={open ? "basic-menu" : undefined}
+                  aria-controls={desktopOpen ? "basic-menu" : undefined}
                   aria-haspopup="true"
-                  aria-expanded={open ? "true" : undefined}
-                  onClick={handleClick}
+                  aria-expanded={desktopOpen ? "true" : undefined}
+                  onClick={handleDesktopClick}
                   className="flex items-center"
                 >
                   <Avatar
@@ -93,22 +107,22 @@ export default function Navbar() {
                 </button>
                 <Menu
                   id="basic-menu"
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
+                  anchorEl={desktopAnchorEl}
+                  open={desktopOpen}
+                  onClose={handleDesktopClose}
                   slotProps={{
                     list: {
                       "aria-labelledby": "basic-button",
                     },
                   }}
                 >
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/profile"}>My Profile</Link>
                   </MenuItem>
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/write"}>Write Post</Link>
                   </MenuItem>
-                  <MenuItem onClick={handleClose}>
+                  <MenuItem onClick={handleDesktopClose}>
                     <Link href={"/drafts"}>My Drafts</Link>
                   </MenuItem>
                   <MenuItem onClick={handleLogout}>
@@ -161,30 +175,34 @@ export default function Navbar() {
             <div>
               <button
                 id="mobile-button"
-                aria-controls={open ? "mobile-menu" : undefined}
+                aria-controls={mobileOpen ? "mobile-menu" : undefined}
                 aria-haspopup="true"
-                aria-expanded={open ? "true" : undefined}
-                onClick={handleClick}
+                aria-expanded={mobileOpen ? "true" : undefined}
+                onClick={handleMobileClick}
                 className="flex items-center"
               >
                 <Avatar alt={session?.user?.name} src={session?.user?.image} />
               </button>
               <Menu
                 id="mobile-menu"
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
+                anchorEl={mobileAnchorEl}
+                open={mobileOpen}
+                onClose={handleMobileClose}
                 slotProps={{
                   list: {
                     "aria-labelledby": "mobile-button",
                   },
                 }}
               >
-                <MenuItem onClick={handleClose}>
+                <MenuItem onClick={handleMobileClose}>
                   <Link href={"/profile"}>My Profile</Link>
                 </MenuItem>
-                <MenuItem onClick={handleClose}>
+                <MenuItem onClick={handleMobileClose}>
                   <Link href={"/write"}>Write Post</Link>
+                </MenuItem>
+                {/* Fixed: Added missing drafts screen link mapping explicitly for mobile view layouts */}
+                <MenuItem onClick={handleMobileClose}>
+                  <Link href={"/drafts"}>My Drafts</Link>
                 </MenuItem>
                 <MenuItem onClick={handleLogout}>
                   <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">

@@ -5,7 +5,7 @@ import { FaHeart, FaFacebook, FaLinkedin } from "react-icons/fa";
 import { FaRegComment } from "react-icons/fa";
 import { BsTwitterX } from "react-icons/bs";
 import { LuArrowLeft } from "react-icons/lu";
-import { FiLoader } from "react-icons/fi";
+import { FiLoader, FiWifi, FiTrash2 } from "react-icons/fi";
 import { db } from "@/config/firebase";
 import {
   doc,
@@ -13,6 +13,7 @@ import {
   collection,
   addDoc,
   getDocs,
+  deleteDoc,
   serverTimestamp,
   updateDoc,
   increment,
@@ -33,8 +34,21 @@ export default function SinglePostClient() {
   const [postingComment, setPostingComment] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [commentError, setCommentError] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
 
-  // Fetch post
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const fetchPost = async () => {
     try {
       const docRef = doc(db, "posts", id);
@@ -51,7 +65,6 @@ export default function SinglePostClient() {
     }
   };
 
-  // Fetch comments
   const fetchComments = async () => {
     try {
       const q = query(
@@ -76,13 +89,10 @@ export default function SinglePostClient() {
     }
   }, [id]);
 
-  // Handle Like
   const handleLike = async () => {
     if (liked) return;
     try {
-      await updateDoc(doc(db, "posts", id), {
-        likes: increment(1),
-      });
+      await updateDoc(doc(db, "posts", id), { likes: increment(1) });
       setLiked(true);
       setLikesCount((prev) => prev + 1);
     } catch (error) {
@@ -90,10 +100,14 @@ export default function SinglePostClient() {
     }
   };
 
-  // Handle Comment
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
+    if (!isOnline) {
+      setCommentError("No internet connection. Please check your network.");
+      return;
+    }
     setPostingComment(true);
+    setCommentError("");
     try {
       await addDoc(collection(db, "posts", id, "comments"), {
         text: commentText,
@@ -102,16 +116,48 @@ export default function SinglePostClient() {
         authorImage: session?.user?.image || "",
         createdAt: serverTimestamp(),
       });
+
+      // Updates counter fields incrementally
+      await updateDoc(doc(db, "posts", id), {
+        comments: increment(1),
+        commentsCount: increment(1),
+      });
+
       setCommentText("");
-      fetchComments();
+      await fetchComments();
     } catch (error) {
       console.error("Error posting comment:", error);
+      setCommentError("Failed to post comment. Please try again.");
     } finally {
       setPostingComment(false);
     }
   };
 
-  // Loading State
+  const handleDeleteComment = async (commentId) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    if (!isOnline) {
+      alert("No internet connection. Cannot delete comment right now.");
+      return;
+    }
+
+    try {
+      const commentDocRef = doc(db, "posts", id, "comments", commentId);
+      await deleteDoc(commentDocRef);
+
+      // FIXED: Correctly pass the increment(-1) function to perform a numerical field decrement execution
+      await updateDoc(doc(db, "posts", id), {
+        comments: increment(-1),
+        commentsCount: increment(-1),
+      });
+
+      // Updates the local UI state dynamically
+      setComments((prev) => prev.filter((c) => c.commentId !== commentId));
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("Failed to delete comment. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-dvh bg-gray-50 flex flex-col items-center justify-center gap-4">
@@ -124,7 +170,6 @@ export default function SinglePostClient() {
     );
   }
 
-  // Post Not Found
   if (!post) {
     return (
       <main className="min-h-dvh bg-gray-50 flex flex-col items-center justify-center gap-4">
@@ -148,6 +193,14 @@ export default function SinglePostClient() {
   return (
     <main className="min-h-dvh bg-gray-50 py-10 px-4 sm:px-6">
       <div className="w-full max-w-3xl mx-auto flex flex-col gap-8">
+        {/* Network Banner */}
+        {!isOnline && (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-500 text-sm px-4 py-3 rounded-2xl">
+            <FiWifi className="text-lg shrink-0" />
+            You are offline. Some features may not work.
+          </div>
+        )}
+
         {/* Back Button */}
         <Link
           href={"/explore"}
@@ -231,9 +284,7 @@ export default function SinglePostClient() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-4 flex items-center justify-between flex-wrap gap-4">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-2 text-sm font-medium transition-all duration-200 ${
-              liked ? "text-pink-500" : "text-gray-400 hover:text-pink-400"
-            }`}
+            className={`flex items-center gap-2 text-sm font-medium transition-all duration-200 ${liked ? "text-pink-500" : "text-gray-400 hover:text-pink-400"}`}
           >
             <FaHeart className="text-xl" />
             {likesCount} {likesCount === 1 ? "Like" : "Likes"}
@@ -274,6 +325,12 @@ export default function SinglePostClient() {
 
           {/* Comment Input */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-4 flex flex-col gap-3">
+            {commentError && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-500 text-xs px-3 py-2 rounded-xl">
+                <FiWifi className="shrink-0" />
+                {commentError}
+              </div>
+            )}
             <textarea
               placeholder={
                 session
@@ -322,7 +379,7 @@ export default function SinglePostClient() {
               comments.map((comment) => (
                 <div
                   key={comment.commentId}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-4 flex items-start gap-4"
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-4 flex items-start gap-4 relative"
                 >
                   {comment.authorImage ? (
                     <img
@@ -343,13 +400,28 @@ export default function SinglePostClient() {
                       <p className="text-sm font-semibold text-gray-700">
                         {comment.name}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {comment.createdAt?.seconds
-                          ? new Date(
-                              comment.createdAt.seconds * 1000,
-                            ).toLocaleDateString()
-                          : "Just now"}
-                      </p>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <p className="text-xs text-gray-400">
+                          {comment.createdAt?.seconds
+                            ? new Date(
+                                comment.createdAt.seconds * 1000,
+                              ).toLocaleDateString()
+                            : "Just now"}
+                        </p>
+
+                        {/* FIXED: Removed the responsive 'group-hover' layout blocks to ensure full button visibility on all screens and mobile viewports */}
+                        {session?.user?.name === comment.name && (
+                          <button
+                            onClick={() =>
+                              handleDeleteComment(comment.commentId)
+                            }
+                            className="text-gray-400 hover:text-red-500 rounded-full transition-colors p-1 hover:bg-red-50 flex items-center justify-center shrink-0"
+                            title="Delete Comment"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-gray-500 leading-relaxed">
                       {comment.text}

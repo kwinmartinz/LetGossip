@@ -10,20 +10,29 @@ import {
   getDocs,
   doc,
   deleteDoc,
+  updateDoc,
   query,
   where,
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { signOut } from "next-auth/react";
-import { updateDoc, doc as firestoreDoc } from "firebase/firestore";
 
 export default function ProfilePage({ session }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
-  const [newName, setNewName] = useState(session?.user?.name || "");
-  const [displayName, setDisplayName] = useState(session?.user?.name || "");
+  const [newName, setNewName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [savedName, setSavedName] = useState("");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("letgossip_display_name");
+    const name = stored || session?.user?.name || "";
+    setDisplayName(name);
+    setNewName(name);
+    setSavedName(name);
+  }, [session]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -37,9 +46,7 @@ export default function ProfilePage({ session }) {
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
         const data = { postId: doc.id, ...doc.data() };
-        if (data.status === "published") {
-          items.push(data);
-        }
+        if (data.status === "published") items.push(data);
       });
       setPosts(items);
     } catch (error) {
@@ -67,17 +74,9 @@ export default function ProfilePage({ session }) {
   const handleSaveName = async () => {
     if (!newName.trim()) return;
     try {
-      // Find user document and update name
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", session?.user?.email),
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const userDocRef = doc(db, "users", snapshot.docs[0].id);
-        await updateDoc(userDocRef, { name: newName.trim() });
-      }
+      localStorage.setItem("letgossip_display_name", newName.trim());
       setDisplayName(newName.trim());
+      setSavedName(newName.trim());
       setEditingName(false);
     } catch (error) {
       console.error("Error updating name:", error);
@@ -85,11 +84,13 @@ export default function ProfilePage({ session }) {
   };
 
   const handleCancelEdit = () => {
-    setNewName(displayName);
+    setNewName(savedName);
     setEditingName(false);
   };
 
   const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0);
+
+  const avatarInitial = displayName?.charAt(0)?.toUpperCase() || "?";
 
   return (
     <main className="min-h-dvh bg-gray-50 py-10 px-4 sm:px-6">
@@ -100,7 +101,7 @@ export default function ProfilePage({ session }) {
           {session?.user?.image ? (
             <img
               src={session.user.image}
-              alt={session.user.name}
+              alt={displayName}
               className="w-24 h-24 rounded-full object-cover shrink-0 border-4 border-[#F59E0B]"
             />
           ) : (
@@ -108,13 +109,13 @@ export default function ProfilePage({ session }) {
               className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-black shrink-0"
               style={{ backgroundColor: Theme.primary }}
             >
-              {displayName?.slice(0, 2).toUpperCase()}
+              {avatarInitial}
             </div>
           )}
 
           {/* Info */}
           <div className="flex flex-col gap-3 flex-1 text-center sm:text-left">
-            {/* Name + Edit */}
+            {/* Name + Edit + Logout */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               {editingName ? (
                 <div className="flex items-center gap-2">
@@ -154,7 +155,6 @@ export default function ProfilePage({ session }) {
                 </div>
               )}
 
-              {/* Logout Button */}
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-full border border-red-200 text-red-400 hover:bg-red-50 hover:border-red-400 transition-all duration-200"
@@ -164,7 +164,6 @@ export default function ProfilePage({ session }) {
               </button>
             </div>
 
-            {/* Email */}
             <p className="text-gray-500 text-sm">{session?.user?.email}</p>
 
             {/* Stats */}
@@ -230,16 +229,8 @@ export default function ProfilePage({ session }) {
               {posts.map((post) => (
                 <div
                   key={post.postId}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200 relative"
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
                 >
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => handleDelete(post.postId)}
-                    className="absolute top-4 right-4 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
-
                   {/* Cover Image */}
                   {post.coverImage && (
                     <img
@@ -249,34 +240,36 @@ export default function ProfilePage({ session }) {
                     />
                   )}
 
-                  {/* Category & Date */}
-                  <div className="flex items-center justify-between">
+                  {/* Category, Date & Delete in one row */}
+                  <div className="flex items-center justify-between gap-2">
                     <span
-                      className="text-xs font-semibold px-3 py-1 rounded-full text-white"
+                      className="text-xs font-semibold px-3 py-1 rounded-full text-white shrink-0"
                       style={{ backgroundColor: Theme.primary }}
                     >
                       {post.category}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 flex-1 text-center">
                       {post.createdAt?.seconds
                         ? new Date(
                             post.createdAt.seconds * 1000,
                           ).toLocaleDateString()
                         : ""}
                     </span>
+                    <button
+                      onClick={() => handleDelete(post.postId)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0"
+                    >
+                      <FiTrash2 size={15} />
+                    </button>
                   </div>
 
-                  {/* Title */}
                   <h3 className="text-base font-black text-gray-800 leading-snug">
                     {post.title}
                   </h3>
-
-                  {/* Excerpt */}
                   <p className="text-sm text-gray-500 leading-relaxed flex-1">
                     {post.content?.slice(0, 100)}...
                   </p>
 
-                  {/* Stats & Read More */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     <div className="flex items-center gap-4 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
