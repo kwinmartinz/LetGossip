@@ -195,14 +195,20 @@ export default function Navbar() {
                 }}
               >
                 <MenuItem onClick={handleMobileClose}>
-                  <Link href={"/profile"}>My Profile</Link>
+                  <Link onClick={() => setNavOpen(false)} href={"/profile"}>
+                    My Profile
+                  </Link>
                 </MenuItem>
                 <MenuItem onClick={handleMobileClose}>
-                  <Link href={"/write"}>Write Post</Link>
+                  <Link onClick={() => setNavOpen(false)} href={"/write"}>
+                    Write Post
+                  </Link>
                 </MenuItem>
                 {/* Fixed: Added missing drafts screen link mapping explicitly for mobile view layouts */}
                 <MenuItem onClick={handleMobileClose}>
-                  <Link href={"/drafts"}>My Drafts</Link>
+                  <Link onClick={() => setNavOpen(false)} href={"/drafts"}>
+                    My Drafts
+                  </Link>
                 </MenuItem>
                 <MenuItem onClick={handleLogout}>
                   <button className="bg-red-500 w-full text-white m-0 py-1 px-4 rounded-md">
